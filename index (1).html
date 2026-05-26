@@ -3,1160 +3,662 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MOVE · Sistema de Supervisión</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>MOVE · Sistema de Auditoría v3 · Semáforos Automáticos</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
+/* ==================== ESTILOS (mismos que antes) ==================== */
 :root {
-  --bg: #07090f;
-  --surface: #0d1117;
-  --surface2: #131924;
-  --surface3: #1a2233;
-  --border: rgba(255,255,255,0.06);
-  --border2: rgba(255,255,255,0.10);
-  --accent: #3b82f6;
-  --accent2: #6366f1;
-  --green: #10b981;
-  --yellow: #f59e0b;
-  --red: #ef4444;
-  --text: #e2e8f0;
-  --text2: #94a3b8;
-  --text3: #475569;
-  --font: 'Space Grotesk', sans-serif;
-  --mono: 'DM Mono', monospace;
+  --bg:       #080c14;
+  --s0:       #0c1220;
+  --s1:       #111827;
+  --s2:       #1a2235;
+  --s3:       #212d42;
+  --s4:       #2a3a52;
+  --border:   rgba(255,255,255,0.055);
+  --border2:  rgba(255,255,255,0.09);
+  --border3:  rgba(255,255,255,0.14);
+  --blue:     #3b82f6;
+  --blue2:    #60a5fa;
+  --indigo:   #6366f1;
+  --green:    #10b981;
+  --green2:   #34d399;
+  --yellow:   #f59e0b;
+  --yellow2:  #fbbf24;
+  --red:      #ef4444;
+  --red2:     #f87171;
+  --orange:   #f97316;
+  --text:     #e2e8f0;
+  --text2:    #94a3b8;
+  --text3:    #4b5e7a;
+  --font:     'Syne', sans-serif;
+  --mono:     'JetBrains Mono', monospace;
+  --r:        12px;
+  --r2:       16px;
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:var(--surface)}
-::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
-
-/* ── BACKGROUND GRID ── */
-body::before{
-  content:'';position:fixed;inset:0;
-  background-image:linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px);
-  background-size:40px 40px;pointer-events:none;z-index:0
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
+html { scroll-behavior:smooth }
+body { font-family:var(--font); background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden }
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image: linear-gradient(rgba(59,130,246,0.025) 1px,transparent 1px),
+                    linear-gradient(90deg,rgba(59,130,246,0.025) 1px,transparent 1px);
+  background-size:48px 48px;
 }
-
-/* ── NAV ── */
-nav{
-  position:sticky;top:0;z-index:100;
-  background:rgba(7,9,15,0.85);backdrop-filter:blur(20px);
+.app { position:relative; z-index:1; max-width:1240px; margin:0 auto; padding:0 20px 80px }
+nav {
+  position:sticky; top:0; z-index:100;
+  background:rgba(8,12,20,0.88); backdrop-filter:blur(24px);
   border-bottom:1px solid var(--border2);
-  padding:0 24px;height:60px;
-  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px; height:58px;
+  display:flex; align-items:center; justify-content:space-between;
 }
-.nav-logo{display:flex;align-items:center;gap:10px}
-.nav-logo-icon{
-  width:32px;height:32px;border-radius:8px;
-  background:linear-gradient(135deg,#1e40af,#3b82f6);
-  display:flex;align-items:center;justify-content:center;font-size:14px
-}
-.nav-logo-text{font-weight:700;font-size:16px;letter-spacing:-0.5px}
-.nav-logo-text span{color:var(--accent)}
-.nav-right{display:flex;align-items:center;gap:12px}
-.nav-badge{
-  background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);
-  color:#93c5fd;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;
-  font-family:var(--mono);letter-spacing:0.5px
-}
-.btn-back{
-  display:none;align-items:center;gap:6px;
-  background:var(--surface2);border:1px solid var(--border2);
-  color:var(--text2);font-size:13px;font-weight:500;
-  padding:6px 14px;border-radius:8px;cursor:pointer;transition:all 0.2s;
-  font-family:var(--font)
-}
-.btn-back:hover{background:var(--surface3);color:var(--text)}
-.btn-back.visible{display:flex}
-
-/* ── PAGES ── */
-#page-grid,#page-detail,#page-form{position:relative;z-index:1}
-.page-hidden{display:none!important}
-
-/* ── GRID HEADER ── */
-.grid-header{padding:32px 24px 24px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px}
-.grid-title{font-size:28px;font-weight:700;letter-spacing:-1px}
-.grid-title span{
-  background:linear-gradient(90deg,#60a5fa,#818cf8);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent
-}
-.grid-subtitle{color:var(--text2);font-size:13px;margin-top:4px}
-.grid-actions{display:flex;gap:10px}
-
-/* ── BUTTONS ── */
-.btn-primary{
-  display:flex;align-items:center;gap:8px;
-  background:linear-gradient(135deg,#1d4ed8,#3b82f6);
-  color:#fff;font-size:13px;font-weight:600;
-  padding:9px 18px;border-radius:10px;cursor:pointer;
-  border:none;font-family:var(--font);
-  box-shadow:0 4px 20px rgba(59,130,246,0.25);
-  transition:all 0.2s
-}
-.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(59,130,246,0.35)}
-.btn-secondary{
-  display:flex;align-items:center;gap:8px;
-  background:var(--surface2);border:1px solid var(--border2);
-  color:var(--text);font-size:13px;font-weight:500;
-  padding:9px 18px;border-radius:10px;cursor:pointer;
-  font-family:var(--font);transition:all 0.2s
-}
-.btn-secondary:hover{background:var(--surface3)}
-
-/* ── SUMMARY STATS BAR ── */
-.stats-bar{
-  display:flex;gap:1px;margin:0 24px 28px;
-  background:var(--border);border-radius:14px;overflow:hidden;
-  border:1px solid var(--border2)
-}
-.stat-item{
-  flex:1;padding:16px 20px;background:var(--surface);
-  display:flex;flex-direction:column;gap:4px;
-  transition:background 0.2s
-}
-.stat-item:hover{background:var(--surface2)}
-.stat-num{font-size:26px;font-weight:700;font-family:var(--mono);letter-spacing:-1px}
-.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;font-weight:500}
-.stat-sub{font-size:11px;color:var(--text2)}
-
-/* ── CARDS GRID ── */
-.cards-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
-  gap:16px;padding:0 24px 40px
-}
-
-/* ── TRAINER CARD ── */
-.trainer-card{
-  background:var(--surface);border:1px solid var(--border2);
-  border-radius:16px;padding:20px;cursor:pointer;
-  transition:all 0.25s;position:relative;overflow:hidden
-}
-.trainer-card::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,var(--accent),var(--accent2));
-  transform:scaleX(0);transform-origin:left;transition:transform 0.3s
-}
-.trainer-card:hover{transform:translateY(-3px);border-color:rgba(59,130,246,0.35);
-  box-shadow:0 12px 40px rgba(0,0,0,0.4),0 0 0 1px rgba(59,130,246,0.1)}
-.trainer-card:hover::before{transform:scaleX(1)}
-
-.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
-.card-avatar{
-  width:44px;height:44px;border-radius:12px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;font-weight:700;color:#fff;flex-shrink:0
-}
-.card-badge{
-  font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;
-  font-family:var(--mono)
-}
-.badge-green{background:rgba(16,185,129,0.12);color:#34d399;border:1px solid rgba(16,185,129,0.2)}
-.badge-yellow{background:rgba(245,158,11,0.12);color:#fbbf24;border:1px solid rgba(245,158,11,0.2)}
-.badge-red{background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.2)}
-
-.card-name{font-size:17px;font-weight:700;letter-spacing:-0.3px;margin-bottom:2px}
-.card-meta{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px}
-.card-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
-
-/* ── CARD KPIs ── */
-.card-kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
-.kpi-item{background:var(--surface2);border-radius:10px;padding:10px 12px}
-.kpi-val{font-size:20px;font-weight:700;font-family:var(--mono);letter-spacing:-0.5px}
-.kpi-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-top:2px}
-
-/* ── MINI CHART ── */
-.mini-chart-wrap{
-  margin-top:14px;background:var(--surface2);border-radius:10px;
-  padding:10px 12px;display:flex;align-items:center;gap:14px
-}
-.mini-chart-canvas{width:54px!important;height:54px!important;flex-shrink:0}
-.mini-legend{display:flex;flex-direction:column;gap:4px;flex:1}
-.legend-row{display:flex;align-items:center;justify-content:space-between;font-size:11px}
-.legend-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.legend-label{color:var(--text2);flex:1;margin-left:6px}
-.legend-val{font-weight:600;font-family:var(--mono)}
-
-/* ── CARD FOOTER ── */
-.card-footer{
-  margin-top:14px;padding-top:12px;border-top:1px solid var(--border);
-  display:flex;justify-content:space-between;align-items:center
-}
-.card-footer-left{font-size:11px;color:var(--text3)}
-.card-arrow{
-  width:28px;height:28px;border-radius:8px;
-  background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.15);
-  display:flex;align-items:center;justify-content:center;
-  color:var(--accent);font-size:11px;transition:all 0.2s
-}
-.trainer-card:hover .card-arrow{background:rgba(59,130,246,0.2);transform:translateX(2px)}
-
-/* ── PROGRESS BAR ── */
-.progress-wrap{margin-top:3px}
-.progress-bar{height:3px;background:var(--surface3);border-radius:2px;overflow:hidden;margin-top:4px}
-.progress-fill{height:100%;border-radius:2px;transition:width 0.6s cubic-bezier(0.4,0,0.2,1)}
-
-/* ══════════════════════════════════════════════════
-   DASHBOARD INDIVIDUAL
-══════════════════════════════════════════════════ */
-#page-detail{padding:0 0 60px}
-.detail-header{
-  padding:28px 24px 24px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:16px;flex-wrap:wrap
-}
-.detail-avatar{
-  width:56px;height:56px;border-radius:16px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:22px;font-weight:700;color:#fff;flex-shrink:0
-}
-.detail-name{font-size:24px;font-weight:700;letter-spacing:-0.5px}
-.detail-sub{font-size:13px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:8px}
-.detail-score{
-  margin-left:auto;text-align:right
-}
-.detail-score-num{
-  font-size:42px;font-weight:700;font-family:var(--mono);
-  letter-spacing:-2px;line-height:1
-}
-.detail-score-lbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px}
-
-/* KPI ROW */
-.kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:24px 24px 0}
-.kpi-card{
-  background:var(--surface);border:1px solid var(--border2);
-  border-radius:12px;padding:16px;position:relative;overflow:hidden
-}
-.kpi-card::after{
-  content:'';position:absolute;bottom:0;left:0;right:0;height:2px
-}
-.kpi-card-num{font-size:30px;font-weight:700;font-family:var(--mono);letter-spacing:-1px}
-.kpi-card-lbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.7px;margin-top:4px}
-.kpi-card-icon{position:absolute;top:12px;right:12px;font-size:18px;opacity:0.2}
-
-/* CHARTS ROW */
-.charts-row{display:grid;grid-template-columns:1fr 1.6fr;gap:16px;padding:16px 24px}
-.chart-card{
-  background:var(--surface);border:1px solid var(--border2);
-  border-radius:14px;padding:20px
-}
-.chart-title{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:16px;
-  text-transform:uppercase;letter-spacing:0.6px;font-size:11px}
-.chart-canvas-wrap{position:relative;display:flex;justify-content:center}
-
-/* AUDITS TABLE */
-.audits-section{padding:0 24px}
-.section-header{
-  display:flex;justify-content:space-between;align-items:center;
-  margin-bottom:14px;flex-wrap:wrap;gap:10px
-}
-.section-title{font-size:16px;font-weight:700}
-.section-title span{color:var(--text3);font-size:13px;font-weight:400;margin-left:6px}
-
-.audit-list{display:flex;flex-direction:column;gap:10px}
-.audit-item{
-  background:var(--surface);border:1px solid var(--border2);
-  border-radius:12px;padding:16px;cursor:pointer;transition:all 0.2s
-}
-.audit-item:hover{border-color:rgba(59,130,246,0.3);background:var(--surface2)}
-.audit-item-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.audit-socio{font-size:15px;font-weight:600}
-.audit-date{font-size:11px;color:var(--text3);font-family:var(--mono)}
-.audit-semaforos{display:flex;gap:6px;flex-wrap:wrap}
-.sem-chip{
-  font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px;
-  font-family:var(--mono);letter-spacing:0.3px
-}
-.sem-chip.g{background:rgba(16,185,129,0.12);color:#34d399}
-.sem-chip.y{background:rgba(245,158,11,0.12);color:#fbbf24}
-.sem-chip.r{background:rgba(239,68,68,0.12);color:#f87171}
-.audit-obs{font-size:12px;color:var(--text2);margin-top:8px;line-height:1.5}
-
-/* EXPANDABLE AUDIT DETAIL */
-.audit-expanded{
-  display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)
-}
-.audit-expanded.open{display:block}
-.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
-.detail-block{background:var(--surface2);border-radius:10px;padding:12px}
-.detail-block-title{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);margin-bottom:6px;font-weight:600}
-.detail-block-content{font-size:12px;color:var(--text2);line-height:1.6}
-.plan-list{list-style:none;display:flex;flex-direction:column;gap:4px}
-.plan-list li{display:flex;gap:6px;font-size:12px;color:var(--text2)}
-.plan-list li::before{content:'→';color:var(--accent);flex-shrink:0}
-.sem-full-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-.sem-full{
-  display:flex;align-items:center;gap:6px;
-  background:var(--surface3);border-radius:8px;padding:5px 10px;font-size:11px
-}
-.sem-section-name{color:var(--text2)}
-
-/* ══════════════════════════════════════════════════
-   FORM PAGE
-══════════════════════════════════════════════════ */
-#page-form{padding:0 24px 60px;max-width:860px;margin:0 auto}
-.form-header{padding:28px 0 24px}
-.form-title{font-size:22px;font-weight:700;letter-spacing:-0.5px}
-.form-sub{font-size:13px;color:var(--text2);margin-top:4px}
-
-.form-block{
-  background:var(--surface);border:1px solid var(--border2);
-  border-radius:14px;padding:20px;margin-bottom:14px
-}
-.form-block-title{font-size:13px;font-weight:600;color:var(--text2);
-  text-transform:uppercase;letter-spacing:0.7px;margin-bottom:14px;
-  display:flex;align-items:center;gap:8px
-}
-.form-block-title i{color:var(--accent);opacity:0.7}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.form-group{display:flex;flex-direction:column;gap:6px}
-.form-label{font-size:12px;font-weight:500;color:var(--text2)}
-.form-input,.form-textarea,.form-select{
-  background:var(--surface2);border:1px solid var(--border2);
-  border-radius:10px;padding:10px 14px;color:var(--text);
-  font-size:13px;font-family:var(--font);outline:none;
-  transition:border-color 0.2s,background 0.2s
-}
-.form-input:focus,.form-textarea:focus,.form-select:focus{
-  border-color:rgba(59,130,246,0.5);background:var(--surface3)
-}
-.form-textarea{resize:vertical;min-height:70px;line-height:1.5}
-.form-select option{background:var(--surface2)}
-
-.semaforo-group{display:flex;gap:8px}
-.sem-radio{display:none}
-.sem-radio-lbl{
-  display:flex;align-items:center;gap:5px;
-  padding:6px 12px;border-radius:8px;cursor:pointer;
-  border:1px solid var(--border2);font-size:12px;font-weight:500;
-  transition:all 0.15s;background:var(--surface2);user-select:none
-}
-.sem-radio:checked+.sem-radio-lbl{border-color:transparent}
-.sem-radio.g:checked+.sem-radio-lbl{background:rgba(16,185,129,0.15);color:#34d399;border-color:rgba(16,185,129,0.3)}
-.sem-radio.y:checked+.sem-radio-lbl{background:rgba(245,158,11,0.15);color:#fbbf24;border-color:rgba(245,158,11,0.3)}
-.sem-radio.r:checked+.sem-radio-lbl{background:rgba(239,68,68,0.15);color:#f87171;border-color:rgba(239,68,68,0.3)}
-
-.section-form-block{
-  border:1px solid var(--border);border-radius:12px;padding:14px;
-  margin-bottom:10px;transition:border-color 0.2s
-}
-
-.form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
-
-/* ── EMPTY STATE ── */
-.empty-state{
-  text-align:center;padding:60px 20px;color:var(--text3)
-}
-.empty-icon{font-size:40px;margin-bottom:12px;opacity:0.3}
-.empty-text{font-size:14px}
-
-/* ── TOAST ── */
-.toast{
-  position:fixed;bottom:24px;right:24px;z-index:999;
-  background:var(--surface);border:1px solid rgba(16,185,129,0.3);
-  border-radius:12px;padding:14px 18px;
-  display:flex;align-items:center;gap:10px;
-  box-shadow:0 8px 32px rgba(0,0,0,0.4);
-  transform:translateY(80px);opacity:0;
-  transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);
-  pointer-events:none
-}
-.toast.show{transform:translateY(0);opacity:1}
-.toast-icon{color:var(--green);font-size:16px}
-.toast-text{font-size:13px;font-weight:500}
-
-/* ── LOADING OVERLAY ── */
-#loadingOverlay{
-  position:fixed;inset:0;background:rgba(7,9,15,0.9);
-  display:none;justify-content:center;align-items:center;z-index:200;
-  flex-direction:column;gap:14px
-}
-.spinner{
-  width:44px;height:44px;border-radius:50%;
-  border:3px solid var(--surface3);border-top-color:var(--accent);
-  animation:spin 0.8s linear infinite
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-#loadingOverlay p{font-size:14px;color:var(--text2)}
-
-/* ── RESPONSIVE ── */
-@media(max-width:700px){
-  .cards-grid{grid-template-columns:1fr;padding:0 12px 40px}
-  .stats-bar{margin:0 12px 20px;flex-wrap:wrap}
-  .stat-item{min-width:45%}
-  .charts-row{grid-template-columns:1fr}
-  .kpi-row{padding:16px 12px 0}
-  .detail-header,.audits-section,.charts-row{padding-left:12px;padding-right:12px}
-  .form-row{grid-template-columns:1fr}
-  #page-form{padding:0 12px 60px}
-  .grid-header{padding:20px 12px 16px}
-  .detail-score{display:none}
-}
+.nav-brand { display:flex; align-items:center; gap:10px }
+.nav-icon { width:30px; height:30px; border-radius:8px; background:linear-gradient(135deg,#1e3a8a,#3b82f6); display:flex; align-items:center; justify-content:center; font-size:12px; }
+.nav-name { font-size:15px; font-weight:800; letter-spacing:-0.5px }
+.nav-name em { color:var(--blue2); font-style:normal }
+.nav-chip { font-family:var(--mono); font-size:10px; font-weight:500; padding:3px 9px; border-radius:20px; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); color:var(--blue2); }
+.tabs-wrap { display:flex; gap:4px; background:var(--s1); border:1px solid var(--border2); border-radius:14px; padding:5px; margin:24px 0 28px; }
+.tab-btn { flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 16px; border-radius:10px; border:none; cursor:pointer; font-family:var(--font); font-size:13px; font-weight:600; color:var(--text3); background:transparent; transition:all 0.2s; }
+.tab-btn.active { color:var(--text); background:var(--s3); border:1px solid var(--border3); box-shadow:0 2px 12px rgba(0,0,0,0.3); }
+.tab-btn.active i { color:var(--blue2) }
+.tab-content { display:none }
+.tab-content.active { display:block }
+.card { background:var(--s1); border:1px solid var(--border2); border-radius:var(--r2); padding:20px; }
+.card-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.9px; color:var(--text3); margin-bottom:14px; display:flex; align-items:center; gap:6px; }
+.form-input, .form-textarea, .form-select { width:100%; background:var(--s2); border:1px solid var(--border2); border-radius:var(--r); padding:9px 13px; color:var(--text); font-size:13px; outline:none; }
+.form-label { font-size:11px; font-weight:600; color:var(--text2); margin-bottom:5px; display:block }
+.btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:var(--r); border:none; cursor:pointer; font-family:var(--font); font-size:13px; font-weight:600; transition:all 0.2s; }
+.btn-primary { background:linear-gradient(135deg,#1d4ed8,#3b82f6); color:#fff; box-shadow:0 4px 20px rgba(59,130,246,0.25); }
+.btn-secondary { background:var(--s2); border:1px solid var(--border2); color:var(--text); }
+.btn-sm { padding:6px 13px; font-size:12px }
+.section-block { background:var(--s1); border:1px solid var(--border2); border-radius:var(--r2); padding:18px; margin-bottom:12px; transition:all 0.2s; }
+.section-block.s-verde { border-left:3px solid var(--green) }
+.section-block.s-amarillo { border-left:3px solid var(--yellow) }
+.section-block.s-rojo { border-left:3px solid var(--red) }
+.sem-selector { display:flex; gap:6px; margin-top:8px }
+.sem-opt { display:none }
+.sem-lbl { display:flex; align-items:center; gap:5px; padding:5px 12px; border-radius:8px; cursor:pointer; border:1px solid var(--border2); font-size:11px; font-weight:700; background:var(--s2); }
+.sem-opt.sg:checked + .sem-lbl { background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.4); color:var(--green2) }
+.sem-opt.sy:checked + .sem-lbl { background:rgba(245,158,11,0.15); border-color:rgba(245,158,11,0.4); color:var(--yellow2) }
+.sem-opt.sr:checked + .sem-lbl { background:rgba(239,68,68,0.15); border-color:rgba(239,68,68,0.4); color:var(--red2) }
+.checklist { display:flex; flex-direction:column; gap:6px }
+.check-item { display:flex; align-items:flex-start; gap:10px; background:var(--s2); border-radius:10px; padding:10px 12px; cursor:pointer; border:1px solid transparent; }
+.check-item.checked { background:rgba(16,185,129,0.06); border-color:rgba(16,185,129,0.15) }
+.check-item.checked .check-icon { background:var(--green); border-color:var(--green) }
+.check-icon { width:18px; height:18px; border-radius:5px; flex-shrink:0; margin-top:1px; border:2px solid var(--s4); background:transparent; display:flex; align-items:center; justify-content:center; }
+.check-icon i { font-size:9px; color:#fff; opacity:0; }
+.check-item.checked .check-icon i { opacity:1; }
+.score-meter { display:flex; flex-direction:column; align-items:center; background:var(--s2); border-radius:var(--r2); padding:20px; text-align:center; }
+.score-circle { width:100px; height:100px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-direction:column; position:relative; }
+.score-num { font-size:28px; font-weight:800; font-family:var(--mono); }
+.socios-table-wrap { background:var(--s1); border:1px solid var(--border2); border-radius:var(--r2); overflow:hidden; }
+.table-header { display:grid; grid-template-columns:2fr 1.2fr 1fr 1fr 1fr 1fr 80px; gap:0; background:var(--s2); border-bottom:1px solid var(--border2); padding:10px 16px; }
+.th { font-size:10px; font-weight:700; text-transform:uppercase; color:var(--text3); }
+.table-row { display:grid; grid-template-columns:2fr 1.2fr 1fr 1fr 1fr 1fr 80px; gap:0; padding:12px 16px; border-bottom:1px solid var(--border); align-items:center; cursor:pointer; transition:background 0.15s; }
+.table-row:hover { background:var(--s2) }
+.td { font-size:12px; color:var(--text2); display:flex; align-items:center; gap:5px; }
+.td.name { font-size:13px; font-weight:600; color:var(--text) }
+.status-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.dot-green { background:var(--green) }
+.dot-yellow { background:var(--yellow) }
+.dot-red { background:var(--red) }
+.score-badge { display:inline-flex; align-items:center; justify-content:center; width:38px; height:22px; border-radius:6px; font-size:11px; font-weight:700; }
+.score-badge.high { background:rgba(16,185,129,0.15); color:var(--green2) }
+.score-badge.mid { background:rgba(245,158,11,0.15); color:var(--yellow2) }
+.score-badge.low { background:rgba(239,68,68,0.15); color:var(--red2) }
+.row-detail { display:none; background:var(--s0); border-bottom:1px solid var(--border2); padding:16px 20px; }
+.row-detail.open { display:block }
+.check-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px; }
+.check-row { display:flex; align-items:center; gap:8px; background:var(--s2); border-radius:8px; padding:8px 12px; font-size:12px; }
+.check-row.ok { color:var(--green2) }
+.check-row.fail { color:var(--red2) }
+.alert-banner { display:flex; align-items:flex-start; gap:10px; border-radius:var(--r); padding:12px 14px; margin-top:10px; font-size:12px; }
+.alert-banner.danger { background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); color:var(--red2) }
+.alert-banner.warn { background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2); color:var(--yellow2) }
+.kpi-strip { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin-bottom:20px; }
+.kpi-card { background:var(--s1); border:1px solid var(--border2); border-radius:var(--r2); padding:16px 18px; position:relative; }
+.kpi-num { font-size:32px; font-weight:800; font-family:var(--mono); letter-spacing:-1.5px; line-height:1; }
+.kpi-lbl { font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:0.8px; margin-top:5px; font-weight:600 }
+.toast { position:fixed; bottom:24px; right:24px; z-index:999; background:var(--s1); border:1px solid rgba(16,185,129,0.3); border-radius:var(--r2); padding:13px 18px; display:flex; align-items:center; gap:10px; transform:translateY(70px); opacity:0; transition:all 0.3s; pointer-events:none; }
+.toast.show { transform:translateY(0); opacity:1 }
 </style>
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
-  <div class="nav-logo">
-    <div class="nav-logo-icon"><i class="fas fa-dumbbell" style="color:#fff;font-size:13px"></i></div>
-    <div class="nav-logo-text">MOVE <span>Audit</span></div>
-  </div>
-  <div class="nav-right">
-    <button class="btn-back" id="btnBack" onclick="goBack()">
-      <i class="fas fa-arrow-left" style="font-size:10px"></i> Volver
-    </button>
-    <span class="nav-badge"><i class="fas fa-robot" style="margin-right:4px"></i>IA Activa</span>
-  </div>
+  <div class="nav-brand"><div class="nav-icon"><i class="fas fa-dumbbell" style="color:#fff;font-size:11px"></i></div><span class="nav-name">MOVE <em>Audit</em> <span style="color:var(--text3);font-weight:400;font-size:12px">v3</span></span></div>
+  <div class="nav-right"><span class="nav-chip"><i class="fas fa-circle-dot" style="color:var(--green);margin-right:4px"></i>Semáforos Automáticos</span></div>
 </nav>
 
-<!-- PAGES -->
-<div id="page-grid">
-  <div class="grid-header">
-    <div>
-      <div class="grid-title">Panel de <span>Supervisión</span></div>
-      <div class="grid-subtitle">Monitoreo de entrenadores · Metodología MOVE</div>
-    </div>
-    <div class="grid-actions">
-      <button class="btn-secondary" onclick="showAddTrainer()"><i class="fas fa-user-plus"></i> Nuevo entrenador</button>
-    </div>
+<div class="app">
+  <div class="tabs-wrap">
+    <button class="tab-btn active" onclick="switchTab('audit')"><i class="fas fa-clipboard-list"></i> Auditoría de Planes</button>
+    <button class="tab-btn" onclick="switchTab('carga')"><i class="fas fa-database"></i> Control de Carga y Consistencia</button>
   </div>
 
-  <div class="stats-bar" id="statsBar"></div>
-  <div class="cards-grid" id="cardsGrid"></div>
-</div>
-
-<div id="page-detail" class="page-hidden">
-  <div class="detail-header" id="detailHeader"></div>
-  <div class="kpi-row" id="detailKpis"></div>
-  <div class="charts-row" id="chartsRow">
-    <div class="chart-card">
-      <div class="chart-title"><i class="fas fa-circle-dot" style="margin-right:5px;color:var(--accent)"></i>Distribución Semáforos</div>
-      <div class="chart-canvas-wrap"><canvas id="donutChart" width="180" height="180"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title"><i class="fas fa-bars" style="margin-right:5px;color:var(--accent)"></i>Score por Sección</div>
-      <div class="chart-canvas-wrap" style="height:180px"><canvas id="barChart"></canvas></div>
-    </div>
-  </div>
-  <div class="audits-section" style="margin-top:20px">
-    <div class="section-header">
-      <div class="section-title">Planes Auditados <span id="auditCount"></span></div>
-      <button class="btn-primary" id="btnNewAudit"><i class="fas fa-plus"></i> Nueva Auditoría</button>
-    </div>
-    <div class="audit-list" id="auditList"></div>
-  </div>
-</div>
-
-<div id="page-form" class="page-hidden">
-  <div class="form-header">
-    <div class="form-title" id="formTitle">Nueva Auditoría</div>
-    <div class="form-sub" id="formSub">Completar todos los campos para generar el reporte</div>
-  </div>
-
-  <div class="form-block">
-    <div class="form-block-title"><i class="fas fa-user"></i> Identificación</div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Nombre del Entrenador</label>
-        <input class="form-input" id="fTrainer" placeholder="Ej: Laura Méndez" readonly style="opacity:0.6">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Nombre del Socio *</label>
-        <input class="form-input" id="fSocio" placeholder="Ej: Carlos Rivera">
+  <!-- TAB 1: AUDITORÍA -->
+  <div id="tab-audit" class="tab-content active">
+    <div class="trainer-select-bar" style="display:flex;gap:12px;background:var(--s1);border:1px solid var(--border2);border-radius:var(--r2);padding:14px 18px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:12px;color:var(--text3);font-weight:600">Entrenador</label>
+      <select class="form-select" id="a1Trainer" style="width:200px" onchange="loadAuditFromTrainer()"></select>
+      <label style="margin-left:8px">Socio</label>
+      <select class="form-select" id="a1Socio" style="width:220px" onchange="loadAuditFromSocio()"></select>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="clearAuditForm()"><i class="fas fa-rotate"></i> Limpiar</button>
+        <button class="btn btn-primary btn-sm" onclick="saveAudit()"><i class="fas fa-floppy-disk"></i> Guardar Auditoría</button>
       </div>
     </div>
-  </div>
 
-  <!-- Secciones semáforo -->
-  <div class="form-block">
-    <div class="form-block-title"><i class="fas fa-traffic-light"></i> Evaluación por Sección</div>
-    <div id="formSections"></div>
-  </div>
+    <!-- KPIs resumen -->
+    <div class="kpi-strip" id="a1Kpis"></div>
 
-  <!-- Hallazgos -->
-  <div class="form-block">
-    <div class="form-block-title"><i class="fas fa-magnifying-glass"></i> Hallazgos Técnicos</div>
-    <div class="form-group">
-      <textarea class="form-textarea" id="fHallazgos" rows="3" placeholder="Describir hallazgos técnicos observados durante la auditoría..."></textarea>
+    <!-- SECCIÓN 1: CONTROL DE FECHAS -->
+    <div class="section-block s-verde" id="sec-fecha">
+      <div class="section-block-header" style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:700"><i class="fas fa-calendar-days"></i> Control de Fechas</div>
+        <div><span id="sem0Label" style="font-size:13px;font-weight:700">🟢 Verde</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+        <div><div style="font-size:10px;color:var(--text3)">Último cambio plan</div><input type="date" class="form-input" id="fechaCambioPlan" onchange="calcAutoSemaforos()"></div>
+        <div><div style="font-size:10px;color:var(--text3)">Última evaluación</div><input type="date" class="form-input" id="fechaEvaluacion" onchange="calcAutoSemaforos()"></div>
+        <div><div style="font-size:10px;color:var(--text3)">Fecha en app (plan)</div><input type="date" class="form-input" id="fechaApp" onchange="calcAutoSemaforos()"></div>
+      </div>
+      <div id="dateAlerts"></div>
+    </div>
+
+    <!-- SECCIÓN 2: MODIFICACIÓN DEL PLAN -->
+    <div class="section-block s-verde" id="sec-plan">
+      <div class="section-block-header" style="display:flex;justify-content:space-between">
+        <div style="font-weight:700"><i class="fas fa-pen-to-square"></i> Modificación del Plan</div>
+        <div><span id="sem1Label">🟢 Verde</span></div>
+      </div>
+      <div class="checklist" id="cl-plan">
+        <div class="check-item" data-key="plan_actualizado"><div class="check-icon"><i class="fas fa-check"></i></div><div class="check-label"><strong>Plan actualizado recientemente</strong>Cambio en menos de 45 días</div></div>
+        <div class="check-item" data-key="plan_coherencia"><div class="check-icon"><i class="fas fa-check"></i></div><div class="check-label"><strong>Coherencia con objetivo</strong>El plan alinea con la meta del socio</div></div>
+        <div class="check-item" data-key="fecha_registrada"><div class="check-icon"><i class="fas fa-check"></i></div><div class="check-label"><strong>Fecha registrada correctamente</strong>Visible en sistema</div></div>
+      </div>
+      <textarea class="form-textarea" id="obs-plan" rows="2" placeholder="Observaciones..." style="margin-top:12px"></textarea>
+    </div>
+
+    <!-- SECCIÓN 3: DIAGNÓSTICO Y EVOLUCIÓN -->
+    <div class="section-block s-verde" id="sec-diag">
+      <div class="section-block-header" style="display:flex;justify-content:space-between">
+        <div style="font-weight:700"><i class="fas fa-chart-line"></i> Diagnóstico y Evolución</div>
+        <div><span id="sem2Label">🟢 Verde</span></div>
+      </div>
+      <div class="checklist" id="cl-diag">
+        <div class="check-item" data-key="eval_inicial"><div class="check-icon"><i class="fas fa-check"></i></div><div class="check-label"><strong>Evaluación inicial cargada</strong>Con datos técnicos completos</div></div>
+        <div class="check-item" data-key="reevaluacion"><div class="check-icon"><i class="fas fa-check"></i></div><div class="check-label"><strong>Reevaluaciones realizadas</strong>En ciclo correspondiente</div></div>
+        <div class="check-item" data-key="datos_coherentes"><div class="check-icon"><i class="fas fa-check"></i></div><div class="check-label"><strong>Datos coherentes</strong>Sin contradicciones</div></div>
+      </div>
+      <textarea class="form-textarea" id="obs-diag" rows="2" placeholder="Observaciones..." style="margin-top:12px"></textarea>
+    </div>
+
+    <!-- SECCIÓN 4: RIGOR METODOLÓGICO -->
+    <div class="section-block s-verde" id="sec-met">
+      <div class="section-block-header" style="display:flex;justify-content:space-between">
+        <div style="font-weight:700"><i class="fas fa-dumbbell"></i> Rigor Metodológico</div>
+        <div><span id="sem3Label">🟢 Verde</span></div>
+      </div>
+      <div class="checklist" id="cl-met">
+        <div class="check-item" data-key="estructura"><div class="check-icon"><i class="fas fa-check"></i></div><div class="check-label"><strong>Estructura correcta</strong>Warm-up, core, cool-down</div></div>
+        <div class="check-item" data-key="series_reps"><div class="check-icon"><i class="fas fa-check"></i></div><div class="check-label"><strong>Series y repeticiones adecuadas</strong>Volumen coherente</div></div>
+        <div class="check-item" data-key="rpe"><div class="check-icon"><i class="fas fa-check"></i></div><div class="check-label"><strong>Uso de RPE/RIR</strong>Prescripto en cada bloque</div></div>
+      </div>
+      <textarea class="form-textarea" id="obs-met" rows="2" placeholder="Observaciones..." style="margin-top:12px"></textarea>
+    </div>
+
+    <!-- SECCIÓN 5: CUSTOMIZACIÓN -->
+    <div class="section-block s-verde" id="sec-custom">
+      <div class="section-block-header" style="display:flex;justify-content:space-between">
+        <div style="font-weight:700"><i class="fas fa-user-gear"></i> Customización</div>
+        <div><span id="sem4Label">🟢 Verde</span></div>
+      </div>
+      <div class="checklist" id="cl-custom">
+        <div class="check-item" data-key="modificaciones"><div class="check-icon"><i class="fas fa-check"></i></div><div class="check-label"><strong>Modificaciones sobre base</strong>No es plan genérico</div></div>
+        <div class="check-item" data-key="adaptaciones"><div class="check-icon"><i class="fas fa-check"></i></div><div class="check-label"><strong>Adaptaciones por lesión</strong>Registradas en el plan</div></div>
+        <div class="check-item" data-key="ajuste_objetivo"><div class="check-icon"><i class="fas fa-check"></i></div><div class="check-label"><strong>Ajuste por objetivo</strong>Personalización real</div></div>
+      </div>
+      <textarea class="form-textarea" id="obs-custom" rows="2" placeholder="Observaciones..." style="margin-top:12px"></textarea>
+    </div>
+
+    <!-- HALLAZGOS Y PLAN -->
+    <div class="audit-layout" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="section-block">
+        <div style="font-weight:700;margin-bottom:10px"><i class="fas fa-search"></i> Hallazgos Técnicos</div>
+        <textarea class="form-textarea" id="hallazgos" rows="4"></textarea>
+      </div>
+      <div>
+        <div class="score-meter" id="scoreBlock">
+          <div class="score-circle"><div class="score-num" id="scoreNum">0</div><div class="score-unit">pts</div></div>
+          <div class="score-label">Score Global</div>
+          <div id="scoreStatus">—</div>
+        </div>
+        <div style="margin-top:12px">
+          <div style="font-weight:700;margin-bottom:6px">Plan de acción</div>
+          <input class="form-input" id="plan1" placeholder="1." style="margin-bottom:6px">
+          <input class="form-input" id="plan2" placeholder="2." style="margin-bottom:6px">
+          <input class="form-input" id="plan3" placeholder="3.">
+        </div>
+      </div>
+    </div>
+    <div class="action-bar" style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
+      <button class="btn btn-secondary" onclick="clearAuditForm()"><i class="fas fa-rotate"></i> Limpiar</button>
+      <button class="btn btn-primary" onclick="saveAudit()"><i class="fas fa-floppy-disk"></i> Guardar</button>
     </div>
   </div>
 
-  <!-- Plan de acción -->
-  <div class="form-block">
-    <div class="form-block-title"><i class="fas fa-list-check"></i> Plan de Acción</div>
-    <div class="form-group" style="margin-bottom:8px">
-      <label class="form-label">Punto 1</label>
-      <input class="form-input" id="fPlan1" placeholder="Acción correctiva 1...">
+  <!-- TAB 2: CONTROL DE CARGA -->
+  <div id="tab-carga" class="tab-content">
+    <div class="filter-bar" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;background:var(--s1);padding:12px 16px;border-radius:var(--r2);margin-bottom:16px">
+      <label>Entrenador:</label>
+      <select class="form-select" id="c2Trainer" style="width:200px" onchange="renderTab2()"></select>
+      <label>Estado:</label>
+      <div id="filterChips" style="display:flex;gap:5px">
+        <button class="filter-chip active" data-state="all" onclick="setFilter(this,'all')">Todos</button>
+        <button class="filter-chip" data-state="ok" onclick="setFilter(this,'ok')">✔ Correcto</button>
+        <button class="filter-chip" data-state="warn" onclick="setFilter(this,'warn')">⚠ Desfasado</button>
+        <button class="filter-chip" data-state="fail" onclick="setFilter(this,'fail')">❌ Incorrecto</button>
+      </div>
+      <button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="openAddSocioModal()"><i class="fas fa-user-plus"></i> Agregar socio</button>
     </div>
-    <div class="form-group" style="margin-bottom:8px">
-      <label class="form-label">Punto 2</label>
-      <input class="form-input" id="fPlan2" placeholder="Acción correctiva 2...">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Punto 3</label>
-      <input class="form-input" id="fPlan3" placeholder="Acción correctiva 3...">
-    </div>
-  </div>
 
-  <div class="form-actions">
-    <button class="btn-secondary" onclick="cancelForm()"><i class="fas fa-xmark"></i> Cancelar</button>
-    <button class="btn-primary" onclick="saveAudit()"><i class="fas fa-floppy-disk"></i> Guardar Auditoría</button>
+    <div class="socios-table-wrap">
+      <div class="table-header">
+        <div class="th">Socio</div><div class="th">Entrenador</div><div class="th">Estado</div><div class="th">Score</div><div class="th">Plan</div><div class="th">Eval.</div><div class="th"></div>
+      </div>
+      <div id="c2TableBody"></div>
+    </div>
   </div>
 </div>
 
-<!-- Loading -->
-<div id="loadingOverlay"><div class="spinner"></div><p>Guardando auditoría…</p></div>
+<div class="toast" id="toast"><i class="fas fa-circle-check"></i><span id="toastMsg">Guardado</span></div>
 
-<!-- Toast -->
-<div class="toast" id="toast">
-  <i class="fas fa-circle-check toast-icon"></i>
-  <span class="toast-text" id="toastText">Auditoría guardada correctamente</span>
-</div>
-
-<!-- Add Trainer Modal -->
-<div id="trainerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:150;display:none;justify-content:center;align-items:center">
-  <div style="background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:28px;width:360px;max-width:90vw">
-    <div style="font-size:16px;font-weight:700;margin-bottom:16px">Agregar Entrenador</div>
-    <div class="form-group" style="margin-bottom:12px">
-      <label class="form-label">Nombre completo *</label>
-      <input class="form-input" id="tName" placeholder="Ej: Laura Méndez">
+<!-- Modal para agregar socio -->
+<div id="addSocioModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;justify-content:center;align-items:center">
+  <div style="background:var(--s1);border-radius:var(--r2);padding:28px;width:420px;max-width:92vw">
+    <div style="font-size:16px;font-weight:800;margin-bottom:18px">Agregar Socio</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div><label class="form-label">Nombre</label><input class="form-input" id="sm_name"></div>
+      <div><label class="form-label">Entrenador</label><select class="form-select" id="sm_trainer"></select></div>
+      <div><label class="form-label">Objetivo</label><input class="form-input" id="sm_objetivo"></div>
+      <div><label class="form-label">Fecha último plan</label><input type="date" class="form-input" id="sm_fechaPlan"></div>
+      <div><label class="form-label">Fecha evaluación</label><input type="date" class="form-input" id="sm_fechaEval"></div>
+      <div><label class="form-label">Fecha plan en app</label><input type="date" class="form-input" id="sm_fechaApp"></div>
     </div>
-    <div class="form-group" style="margin-bottom:16px">
-      <label class="form-label">Socios activos</label>
-      <input class="form-input" id="tSocios" type="number" placeholder="Ej: 12" min="0">
+    <div style="margin-bottom:14px">
+      <div class="form-label">Validaciones</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px"><input type="checkbox" id="sm_perfil"> Perfil en app</label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px"><input type="checkbox" id="sm_evalCargada"> Evaluación cargada</label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px"><input type="checkbox" id="sm_planCoincide"> Plan coincide</label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px"><input type="checkbox" id="sm_fechaCoincide"> Fecha coincide</label>
+      </div>
     </div>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn-secondary" onclick="closeTrainerModal()">Cancelar</button>
-      <button class="btn-primary" onclick="addTrainer()"><i class="fas fa-user-plus"></i> Agregar</button>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-secondary btn-sm" onclick="closeAddSocioModal()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="saveSocio()">Agregar</button>
     </div>
   </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════
-//  DATA STORE
-// ═══════════════════════════════════════════════
-const SECTIONS = [
-  { key:'gestion',    label:'Gestión y Vigencia',      icon:'fa-calendar-check' },
-  { key:'diagnostico',label:'Diagnóstico y Evolución', icon:'fa-chart-line' },
-  { key:'metodologia',label:'Rigor Metodológico',      icon:'fa-dumbbell' },
-  { key:'custom',     label:'Customización',           icon:'fa-user-check' }
-];
-
-const COLORS = ['#6366f1','#3b82f6','#06b6d4','#10b981','#f59e0b','#f97316','#ec4899'];
-const AVATARS_BG = ['#1d4ed8','#7c3aed','#0e7490','#065f46','#92400e','#9d174d'];
-
-function getInitials(name){ return name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }
-function getBg(name){ const i=name.charCodeAt(0)%AVATARS_BG.length; return AVATARS_BG[i] }
-function semToNum(s){ if(s==='verde') return 100; if(s==='amarillo') return 60; return 20 }
-function semToClass(s){ if(s==='verde') return 'g'; if(s==='amarillo') return 'y'; return 'r' }
-function semLabel(s){ if(s==='verde') return '🟢 Verde'; if(s==='amarillo') return '🟡 Amarillo'; return '🔴 Rojo' }
-
-// Demo data
-let store = {
+// ==================== DATA STORE ====================
+const store = {
   trainers: [
-    {
-      id:'t1', name:'Laura Méndez', sociosActivos:14,
-      audits:[
-        {
-          id:'a1', socio:'Carlos Rivera', date:'2025-04-12',
-          semaforos:{gestion:'verde',diagnostico:'verde',metodologia:'amarillo',custom:'verde'},
-          hallazgos:'El socio presenta buena adherencia a la planificación. Se detectó que el bloque de fuerza no incluye progresión de carga en las últimas 2 semanas.',
-          planes:['Agregar progresión semanal al bloque de fuerza','Incorporar reevaluación de movilidad en la próxima sesión','Actualizar notas en CRM con los nuevos datos'],
-          obs:{gestion:'Plan vigente y actualizado.',diagnostico:'Evaluación inicial completa. Reevaluación pendiente.',metodologia:'Falta control de carga (RIR) en bloque principal.',custom:'Buena adaptación por lesión de rodilla previa.'}
-        },
-        {
-          id:'a2', socio:'Ana Suárez', date:'2025-04-10',
-          semaforos:{gestion:'amarillo',diagnostico:'verde',metodologia:'verde',custom:'verde'},
-          hallazgos:'CRM con tareas atrasadas. Metodología correcta.',
-          planes:['Actualizar tareas en CRM','Seguimiento semanal de adherencia','Nada por ahora en metodología'],
-          obs:{gestion:'2 tareas de seguimiento pendientes.',diagnostico:'Reevaluación realizada correctamente.',metodologia:'Estructura de sesión ejemplar.',custom:'Adaptaciones bien documentadas.'}
-        }
-      ]
-    },
-    {
-      id:'t2', name:'Marcos Torres', sociosActivos:9,
-      audits:[
-        {
-          id:'a3', socio:'Luis Herrera', date:'2025-04-08',
-          semaforos:{gestion:'rojo',diagnostico:'amarillo',metodologia:'rojo',custom:'amarillo'},
-          hallazgos:'Planificación desactualizada. Sin control de carga RPE. Reevaluación con más de 6 semanas de demora.',
-          planes:['Actualizar plan inmediatamente','Incorporar RPE en todos los ejercicios','Agendar reevaluación esta semana'],
-          obs:{gestion:'Plan con 3 semanas de atraso.',diagnostico:'Reevaluación no realizada en el ciclo.',metodologia:'Sin RPE/RIR en ningún ejercicio.',custom:'Ejercicios no ajustados al nivel biomecánico.'}
-        }
-      ]
-    },
-    {
-      id:'t3', name:'Valentina Cruz', sociosActivos:18,
-      audits:[
-        {
-          id:'a4', socio:'Pedro Jiménez', date:'2025-04-15',
-          semaforos:{gestion:'verde',diagnostico:'verde',metodologia:'verde',custom:'verde'},
-          hallazgos:'Auditoría sin observaciones críticas. Entrenadora referente del equipo.',
-          planes:['Mantener estándar actual','Compartir buenas prácticas con el equipo','Evaluar mentoreo a entrenadores nuevos'],
-          obs:{gestion:'Todas las tareas CRM al día.',diagnostico:'Evaluaciones y reevaluaciones completas.',metodologia:'Estructura perfecta, RPE en todos los bloques.',custom:'Excelente personalización por patologías.'}
-        },
-        {
-          id:'a5', socio:'Marina López', date:'2025-04-14',
-          semaforos:{gestion:'verde',diagnostico:'verde',metodologia:'amarillo',custom:'verde'},
-          hallazgos:'Ligera desviación en dosificación de volumen para objetivo de hipertrofia.',
-          planes:['Ajustar series en bloque hipertrófico','Revisar progresión de cargas','Documentar en CRM'],
-          obs:{gestion:'Óptimo.',diagnostico:'Completo.',metodologia:'Volumen levemente subóptimo.',custom:'Buena personalización.'}
-        }
-      ]
-    }
-  ]
+    { id:'t1', name:'Laura Méndez' },
+    { id:'t2', name:'Marcos Torres' },
+    { id:'t3', name:'Valentina Cruz' }
+  ],
+  socios: [
+    { id:'s1', name:'Carlos Rivera', trainerId:'t1', objetivo:'Fuerza e Hipertrofia', fechaPlan:'2025-03-15', fechaEval:'2025-02-20', fechaApp:'2025-03-15', perfil:true, evalCargada:true, planCoincide:true, fechaCoincide:true },
+    { id:'s2', name:'Ana Suárez', trainerId:'t1', objetivo:'Pérdida de peso', fechaPlan:'2025-02-01', fechaEval:'2024-12-10', fechaApp:'2025-01-20', perfil:true, evalCargada:false, planCoincide:false, fechaCoincide:false },
+    { id:'s3', name:'Luis Herrera', trainerId:'t2', objetivo:'Rendimiento deportivo', fechaPlan:'2025-04-01', fechaEval:'2025-03-30', fechaApp:'2025-04-01', perfil:true, evalCargada:true, planCoincide:true, fechaCoincide:true },
+    { id:'s4', name:'María González', trainerId:'t2', objetivo:'', fechaPlan:'2025-01-10', fechaEval:'', fechaApp:'2025-02-15', perfil:false, evalCargada:false, planCoincide:false, fechaCoincide:false },
+    { id:'s5', name:'Pedro Jiménez', trainerId:'t3', objetivo:'Movilidad', fechaPlan:'2025-04-10', fechaEval:'2025-04-08', fechaApp:'2025-04-10', perfil:true, evalCargada:true, planCoincide:true, fechaCoincide:true },
+    { id:'s6', name:'Marina López', trainerId:'t3', objetivo:'Hipertrofia', fechaPlan:'2025-04-05', fechaEval:'2025-03-15', fechaApp:'2025-04-05', perfil:true, evalCargada:true, planCoincide:true, fechaCoincide:true },
+    { id:'s7', name:'Roberto Díaz', trainerId:'t2', objetivo:'Resistencia', fechaPlan:'2025-03-01', fechaEval:'2025-01-01', fechaApp:'2025-02-10', perfil:true, evalCargada:true, planCoincide:false, fechaCoincide:false }
+  ],
+  audits: []
 };
 
-// ═══════════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════════
-let currentPage = 'grid';
-let currentTrainerId = null;
-let donutChartInst = null;
-let barChartInst = null;
+const today = new Date(); today.setHours(0,0,0,0);
+function daysDiff(dateStr) { if(!dateStr) return null; const d = new Date(dateStr+'T00:00:00'); return Math.floor((today - d) / 86400000); }
+function toastShow(msg, ok=true) { const t = document.getElementById('toast'); t.querySelector('span').textContent = msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3000); }
 
-// ═══════════════════════════════════════════════
-//  TRAINER SCORE CALC
-// ═══════════════════════════════════════════════
-function calcTrainerStats(trainer){
-  const audits = trainer.audits;
-  if(!audits.length) return {score:0,verde:0,amarillo:0,rojo:0,planScore:0,evalScore:0,reevalScore:0,metScore:0};
+// ==================== SEMÁFOROS AUTOMÁTICOS ====================
+function calcularSemaforoAuto(socio) {
+  if(!socio) return { fecha:'verde', plan:'verde', diagnostico:'verde', metodologia:'verde', custom:'verde' };
   
-  let verdeCnt=0,amarilloCnt=0,rojoCnt=0,total=0;
-  let metSum=0;
-  audits.forEach(a=>{
-    Object.values(a.semaforos).forEach(s=>{
-      total++;
-      if(s==='verde') verdeCnt++;
-      else if(s==='amarillo') amarilloCnt++;
-      else rojoCnt++;
-    });
-    metSum += semToNum(a.semaforos.metodologia);
+  const daysPlan = daysDiff(socio.fechaPlan);
+  const daysEval = daysDiff(socio.fechaEval);
+  const daysApp = daysDiff(socio.fechaApp);
+  const tienePerfil = socio.perfil;
+  const tieneEvalCargada = socio.evalCargada;
+  const planCoincide = socio.planCoincide;
+  const fechaCoincide = socio.fechaCoincide;
+  const tieneObjetivo = socio.objetivo && socio.objetivo.trim() !== '';
+  
+  // Semáforo Fechas: combina plan + eval + app
+  let fechaColor = 'verde';
+  if((daysPlan !== null && daysPlan > 45) || (daysEval !== null && daysEval > 45) || (daysApp !== null && daysApp > 45)) fechaColor = 'rojo';
+  else if((daysPlan !== null && daysPlan > 30) || (daysEval !== null && daysEval > 30) || (daysApp !== null && daysApp > 30)) fechaColor = 'amarillo';
+  
+  // Semáforo Plan: actualización reciente + coherencia
+  let planColor = 'verde';
+  if(daysPlan !== null && daysPlan > 45) planColor = 'rojo';
+  else if(daysPlan !== null && daysPlan > 30) planColor = 'amarillo';
+  if(!planCoincide) planColor = 'rojo';
+  
+  // Semáforo Diagnóstico: evaluaciones
+  let diagColor = 'verde';
+  if(!tieneEvalCargada) diagColor = 'rojo';
+  else if(daysEval !== null && daysEval > 45) diagColor = 'rojo';
+  else if(daysEval !== null && daysEval > 30) diagColor = 'amarillo';
+  else if(!tieneObjetivo) diagColor = 'amarillo';
+  
+  // Semáforo Metodología: por ahora basado en perfil y coherencia general
+  let metColor = 'verde';
+  if(!tienePerfil) metColor = 'rojo';
+  else if(!planCoincide) metColor = 'amarillo';
+  
+  // Semáforo Customización: objetivo y adaptaciones
+  let customColor = 'verde';
+  if(!tieneObjetivo) customColor = 'rojo';
+  else if(!fechaCoincide) customColor = 'amarillo';
+  
+  return { fecha: fechaColor, plan: planColor, diagnostico: diagColor, metodologia: metColor, custom: customColor };
+}
+
+function aplicarSemaforosAuto(socioId) {
+  const socio = store.socios.find(s => s.id === socioId);
+  if(!socio) return;
+  const sem = calcularSemaforoAuto(socio);
+  
+  // Actualizar checklists según datos del socio
+  // Fechas
+  if(socio.fechaPlan) document.getElementById('fechaCambioPlan').value = socio.fechaPlan;
+  if(socio.fechaEval) document.getElementById('fechaEvaluacion').value = socio.fechaEval;
+  if(socio.fechaApp) document.getElementById('fechaApp').value = socio.fechaApp;
+  
+  // Check items automáticos
+  const planActualizado = (daysDiff(socio.fechaPlan) !== null && daysDiff(socio.fechaPlan) <= 45);
+  const planCoherencia = socio.planCoincide;
+  const fechaRegistrada = socio.fechaApp && socio.fechaPlan === socio.fechaApp;
+  
+  setCheckItem('cl-plan', 0, planActualizado);
+  setCheckItem('cl-plan', 1, planCoherencia);
+  setCheckItem('cl-plan', 2, fechaRegistrada);
+  
+  setCheckItem('cl-diag', 0, socio.perfil);
+  setCheckItem('cl-diag', 1, socio.evalCargada && daysDiff(socio.fechaEval) !== null && daysDiff(socio.fechaEval) <= 45);
+  setCheckItem('cl-diag', 2, socio.planCoincide && socio.fechaCoincide);
+  
+  setCheckItem('cl-met', 0, true);
+  setCheckItem('cl-met', 1, true);
+  setCheckItem('cl-met', 2, true);
+  
+  setCheckItem('cl-custom', 0, socio.objetivo && socio.objetivo.trim() !== '');
+  setCheckItem('cl-custom', 1, true);
+  setCheckItem('cl-custom', 2, socio.objetivo && socio.objetivo.trim() !== '');
+  
+  // Actualizar bordes de secciones
+  updateSectionBorder('sec-fecha', sem.fecha);
+  updateSectionBorder('sec-plan', sem.plan);
+  updateSectionBorder('sec-diag', sem.diagnostico);
+  updateSectionBorder('sec-met', sem.metodologia);
+  updateSectionBorder('sec-custom', sem.custom);
+  
+  document.getElementById('sem0Label').innerHTML = sem.fecha === 'verde' ? '🟢 Verde' : sem.fecha === 'amarillo' ? '🟡 Amarillo' : '🔴 Rojo';
+  document.getElementById('sem1Label').innerHTML = sem.plan === 'verde' ? '🟢 Verde' : sem.plan === 'amarillo' ? '🟡 Amarillo' : '🔴 Rojo';
+  document.getElementById('sem2Label').innerHTML = sem.diagnostico === 'verde' ? '🟢 Verde' : sem.diagnostico === 'amarillo' ? '🟡 Amarillo' : '🔴 Rojo';
+  document.getElementById('sem3Label').innerHTML = sem.metodologia === 'verde' ? '🟢 Verde' : sem.metodologia === 'amarillo' ? '🟡 Amarillo' : '🔴 Rojo';
+  document.getElementById('sem4Label').innerHTML = sem.custom === 'verde' ? '🟢 Verde' : sem.custom === 'amarillo' ? '🟡 Amarillo' : '🔴 Rojo';
+  
+  // Calcular score
+  calcularScore();
+}
+
+function setCheckItem(containerId, index, checked) {
+  const items = document.querySelectorAll(`#${containerId} .check-item`);
+  if(items[index]) {
+    if(checked) items[index].classList.add('checked');
+    else items[index].classList.remove('checked');
+  }
+}
+
+function updateSectionBorder(sectionId, color) {
+  const section = document.getElementById(sectionId);
+  if(section) {
+    section.classList.remove('s-verde', 's-amarillo', 's-rojo');
+    section.classList.add(`s-${color}`);
+  }
+}
+
+function calcularScore() {
+  const sections = ['sec-fecha','sec-plan','sec-diag','sec-met','sec-custom'];
+  let pts = 0;
+  sections.forEach(sec => {
+    const el = document.getElementById(sec);
+    if(el.classList.contains('s-verde')) pts += 100;
+    else if(el.classList.contains('s-amarillo')) pts += 50;
+    else if(el.classList.contains('s-rojo')) pts += 10;
   });
   
-  const planScore = Math.round(audits.filter(a=>a.semaforos.gestion==='verde').length/audits.length*100);
-  const evalScore = Math.round(audits.filter(a=>a.semaforos.diagnostico!=='rojo').length/audits.length*100);
-  const reevalScore = Math.round(audits.filter(a=>a.semaforos.diagnostico==='verde').length/audits.length*100);
-  const metScore = Math.round(metSum/audits.length);
-  const score = Math.round((verdeCnt/total)*100);
+  const checkTotal = document.querySelectorAll('#tab-audit .check-item').length;
+  const checkDone = document.querySelectorAll('#tab-audit .check-item.checked').length;
+  const checkPct = checkTotal ? (checkDone/checkTotal)*100 : 0;
   
-  return {score,verde:verdeCnt,amarillo:amarilloCnt,rojo:rojoCnt,planScore,evalScore,reevalScore,metScore,total};
+  const finalScore = Math.round((pts / 500) * 70 + checkPct * 0.3);
+  document.getElementById('scoreNum').textContent = finalScore;
+  
+  let statusText = finalScore >= 80 ? 'Óptimo' : finalScore >= 60 ? 'Aceptable' : finalScore >= 40 ? 'A mejorar' : 'Crítico';
+  document.getElementById('scoreStatus').textContent = statusText;
 }
 
-function getBadgeClass(score){
-  if(score>=80) return 'badge-green';
-  if(score>=50) return 'badge-yellow';
-  return 'badge-red';
+function calcAutoSemaforos() {
+  const socioId = document.getElementById('a1Socio').value;
+  if(socioId) aplicarSemaforosAuto(socioId);
 }
 
-function getColorVal(v){ if(v==='verde') return '#10b981'; if(v==='amarillo') return '#f59e0b'; return '#ef4444' }
-
-// ═══════════════════════════════════════════════
-//  RENDER GRID
-// ═══════════════════════════════════════════════
-function renderGrid(){
-  // Stats bar
-  const totalTrainers = store.trainers.length;
-  const totalSocios = store.trainers.reduce((s,t)=>s+t.sociosActivos,0);
-  const totalAudits = store.trainers.reduce((s,t)=>s+t.audits.length,0);
-  const avgScore = store.trainers.length
-    ? Math.round(store.trainers.reduce((s,t)=>s+calcTrainerStats(t).score,0)/store.trainers.length)
-    : 0;
-  
-  document.getElementById('statsBar').innerHTML = `
-    <div class="stat-item">
-      <div class="stat-num" style="color:#60a5fa">${totalTrainers}</div>
-      <div class="stat-label">Entrenadores</div>
-      <div class="stat-sub">activos</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num" style="color:#34d399">${totalSocios}</div>
-      <div class="stat-label">Socios</div>
-      <div class="stat-sub">bajo supervisión</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num" style="color:#a78bfa">${totalAudits}</div>
-      <div class="stat-label">Auditorías</div>
-      <div class="stat-sub">registradas</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num" style="color:${avgScore>=80?'#34d399':avgScore>=50?'#fbbf24':'#f87171'}">${avgScore}%</div>
-      <div class="stat-label">Score Promedio</div>
-      <div class="stat-sub">cumplimiento</div>
-    </div>
-  `;
-
-  const grid = document.getElementById('cardsGrid');
-  grid.innerHTML = '';
-  
-  if(!store.trainers.length){
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-      <div class="empty-icon"><i class="fas fa-user-slash"></i></div>
-      <div class="empty-text">No hay entrenadores registrados.<br>Haz click en "Nuevo entrenador" para comenzar.</div>
-    </div>`;
-    return;
-  }
-  
-  store.trainers.forEach(trainer=>{
-    const stats = calcTrainerStats(trainer);
-    const card = document.createElement('div');
-    card.className = 'trainer-card';
-    card.onclick = ()=>showDetail(trainer.id);
-    
-    const badgeClass = getBadgeClass(stats.score);
-    const badgeText = stats.score>=80?'Óptimo':stats.score>=50?'A mejorar':'Crítico';
-    const scoreColor = stats.score>=80?'var(--green)':stats.score>=50?'var(--yellow)':'var(--red)';
-    
-    const miniId = `mini_${trainer.id}`;
-    
-    card.innerHTML = `
-      <div class="card-top">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div class="card-avatar" style="background:${getBg(trainer.name)}">${getInitials(trainer.name)}</div>
-          <div>
-            <div class="card-name">${trainer.name}</div>
-            <div class="card-meta">
-              <span class="card-dot"></span>
-              ${trainer.sociosActivos} socios · ${trainer.audits.length} auditorías
-            </div>
-          </div>
-        </div>
-        <span class="card-badge ${badgeClass}">${badgeText}</span>
-      </div>
-      
-      <div class="card-kpis">
-        <div class="kpi-item">
-          <div class="kpi-val" style="color:#60a5fa">${stats.planScore}%</div>
-          <div class="kpi-lbl">Planificación</div>
-          <div class="progress-bar"><div class="progress-fill" style="width:${stats.planScore}%;background:#3b82f6"></div></div>
-        </div>
-        <div class="kpi-item">
-          <div class="kpi-val" style="color:#34d399">${stats.evalScore}%</div>
-          <div class="kpi-lbl">Evaluaciones</div>
-          <div class="progress-bar"><div class="progress-fill" style="width:${stats.evalScore}%;background:#10b981"></div></div>
-        </div>
-        <div class="kpi-item">
-          <div class="kpi-val" style="color:#a78bfa">${stats.reevalScore}%</div>
-          <div class="kpi-lbl">Reevaluaciones</div>
-          <div class="progress-bar"><div class="progress-fill" style="width:${stats.reevalScore}%;background:#8b5cf6"></div></div>
-        </div>
-        <div class="kpi-item">
-          <div class="kpi-val" style="color:#fbbf24">${stats.metScore}%</div>
-          <div class="kpi-lbl">Metodología</div>
-          <div class="progress-bar"><div class="progress-fill" style="width:${stats.metScore}%;background:#f59e0b"></div></div>
-        </div>
-      </div>
-      
-      <div class="mini-chart-wrap">
-        <canvas class="mini-chart-canvas" id="${miniId}"></canvas>
-        <div class="mini-legend">
-          <div class="legend-row"><span class="legend-dot" style="background:#10b981"></span><span class="legend-label">Verde</span><span class="legend-val" style="color:#34d399">${stats.verde}</span></div>
-          <div class="legend-row"><span class="legend-dot" style="background:#f59e0b"></span><span class="legend-label">Amarillo</span><span class="legend-val" style="color:#fbbf24">${stats.amarillo}</span></div>
-          <div class="legend-row"><span class="legend-dot" style="background:#ef4444"></span><span class="legend-label">Rojo</span><span class="legend-val" style="color:#f87171">${stats.rojo}</span></div>
-        </div>
-      </div>
-      
-      <div class="card-footer">
-        <span class="card-footer-left">Score global</span>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:18px;font-weight:700;font-family:var(--mono);color:${scoreColor}">${stats.score}%</span>
-          <div class="card-arrow"><i class="fas fa-arrow-right"></i></div>
-        </div>
-      </div>
-    `;
-    
-    grid.appendChild(card);
-    
-    // Mini donut
-    setTimeout(()=>{
-      const ctx = document.getElementById(miniId);
-      if(!ctx) return;
-      const t = stats.verde+stats.amarillo+stats.rojo;
-      new Chart(ctx,{
-        type:'doughnut',
-        data:{
-          datasets:[{
-            data:t?[stats.verde,stats.amarillo,stats.rojo]:[1,0,0],
-            backgroundColor:['#10b981','#f59e0b','#ef4444'],
-            borderWidth:0,hoverBorderWidth:0
-          }]
-        },
-        options:{
-          responsive:false,cutout:'72%',
-          plugins:{legend:{display:false},tooltip:{enabled:false}},
-          animation:{duration:600}
-        }
-      });
-    },50);
+// ==================== CARGA DE AUDITORÍA ====================
+function loadAuditFromTrainer() {
+  const trainerId = document.getElementById('a1Trainer').value;
+  const socioSelect = document.getElementById('a1Socio');
+  const sociosFiltrados = store.socios.filter(s => s.trainerId === trainerId);
+  socioSelect.innerHTML = '<option value="">Seleccionar socio</option>';
+  sociosFiltrados.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = `${s.name} ${s.objetivo ? `- ${s.objetivo}` : ''}`;
+    socioSelect.appendChild(opt);
   });
 }
 
-// ═══════════════════════════════════════════════
-//  SHOW DETAIL
-// ═══════════════════════════════════════════════
-function showDetail(trainerId){
-  currentTrainerId = trainerId;
-  const trainer = store.trainers.find(t=>t.id===trainerId);
-  if(!trainer) return;
-  const stats = calcTrainerStats(trainer);
-  
-  // Destroy old charts
-  if(donutChartInst){ donutChartInst.destroy(); donutChartInst=null; }
-  if(barChartInst){ barChartInst.destroy(); barChartInst=null; }
-  
-  // Header
-  const scoreColor = stats.score>=80?'var(--green)':stats.score>=50?'var(--yellow)':'var(--red)';
-  document.getElementById('detailHeader').innerHTML = `
-    <div class="detail-avatar" style="background:${getBg(trainer.name)}">${getInitials(trainer.name)}</div>
-    <div>
-      <div class="detail-name">${trainer.name}</div>
-      <div class="detail-sub">
-        <i class="fas fa-users" style="font-size:11px"></i> ${trainer.sociosActivos} socios activos
-        <span style="color:var(--surface3)">·</span>
-        <i class="fas fa-clipboard-list" style="font-size:11px"></i> ${trainer.audits.length} auditorías
-      </div>
-    </div>
-    <div class="detail-score">
-      <div class="detail-score-num" style="color:${scoreColor}">${stats.score}%</div>
-      <div class="detail-score-lbl">Score Global</div>
-    </div>
-  `;
-  
-  // KPIs
-  const kpis = [
-    {icon:'fa-users',color:'#60a5fa',val:trainer.sociosActivos,lbl:'Socios Activos',accent:'#1d4ed8'},
-    {icon:'fa-calendar-check',color:'#34d399',val:stats.planScore+'%',lbl:'Planes al Día',accent:'#065f46'},
-    {icon:'fa-file-medical',color:'#a78bfa',val:stats.evalScore+'%',lbl:'Evaluaciones',accent:'#4c1d95'},
-    {icon:'fa-rotate',color:'#fbbf24',val:stats.reevalScore+'%',lbl:'Reevaluaciones',accent:'#78350f'},
-    {icon:'fa-dumbbell',color:'#f97316',val:stats.metScore+'%',lbl:'Score Metodológico',accent:'#7c2d12'},
-  ];
-  document.getElementById('detailKpis').innerHTML = kpis.map(k=>`
-    <div class="kpi-card">
-      <i class="fas ${k.icon} kpi-card-icon" style="color:${k.color}"></i>
-      <div class="kpi-card-num" style="color:${k.color}">${k.val}</div>
-      <div class="kpi-card-lbl">${k.lbl}</div>
-      <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:${k.color};opacity:0.3;border-radius:0 0 12px 12px"></div>
-    </div>
-  `).join('');
-  
-  // Render audits
-  renderAudits(trainer);
-  
-  // Switch page
-  navigate('detail');
-  
-  // Charts after DOM
-  setTimeout(()=>{
-    // Donut
-    const dCtx = document.getElementById('donutChart');
-    if(dCtx){
-      donutChartInst = new Chart(dCtx,{
-        type:'doughnut',
-        data:{
-          labels:['Verde','Amarillo','Rojo'],
-          datasets:[{
-            data:[stats.verde,stats.amarillo,stats.rojo],
-            backgroundColor:['#10b981','#f59e0b','#ef4444'],
-            borderWidth:2,borderColor:'#0d1117',hoverBorderWidth:0
-          }]
-        },
-        options:{
-          responsive:true,cutout:'65%',
-          plugins:{
-            legend:{
-              position:'bottom',
-              labels:{color:'#94a3b8',font:{family:'DM Mono',size:11},padding:12,boxWidth:10}
-            },
-            tooltip:{
-              callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw} secciones`}
-            }
-          }
-        }
-      });
-    }
-    
-    // Bar
-    const bCtx = document.getElementById('barChart');
-    if(bCtx){
-      const labels = SECTIONS.map(s=>s.label.split(' ')[0]);
-      const vals = SECTIONS.map(sec=>{
-        if(!trainer.audits.length) return 0;
-        const sum = trainer.audits.reduce((s,a)=>s+semToNum(a.semaforos[sec.key]),0);
-        return Math.round(sum/trainer.audits.length);
-      });
-      const barColors = vals.map(v=>v>=80?'#10b981':v>=50?'#f59e0b':'#ef4444');
-      
-      barChartInst = new Chart(bCtx,{
-        type:'bar',
-        data:{
-          labels,
-          datasets:[{
-            label:'Score',data:vals,
-            backgroundColor:barColors.map(c=>c+'33'),
-            borderColor:barColors,
-            borderWidth:2,borderRadius:8,
-            hoverBackgroundColor:barColors.map(c=>c+'66')
-          }]
-        },
-        options:{
-          responsive:true,maintainAspectRatio:false,
-          scales:{
-            y:{
-              beginAtZero:true,max:100,
-              grid:{color:'rgba(255,255,255,0.04)'},
-              ticks:{color:'#475569',font:{family:'DM Mono',size:10},callback:v=>v+'%'}
-            },
-            x:{grid:{display:false},ticks:{color:'#94a3b8',font:{family:'Space Grotesk',size:11}}}
-          },
-          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`Score: ${ctx.raw}%`}}}
-        }
-      });
-    }
-  },100);
+function loadAuditFromSocio() {
+  const socioId = document.getElementById('a1Socio').value;
+  if(socioId) aplicarSemaforosAuto(socioId);
 }
 
-// ═══════════════════════════════════════════════
-//  RENDER AUDITS
-// ═══════════════════════════════════════════════
-function renderAudits(trainer){
-  document.getElementById('auditCount').textContent = `(${trainer.audits.length})`;
-  document.getElementById('btnNewAudit').onclick = ()=>showForm(trainer.id);
+function clearAuditForm() {
+  document.getElementById('a1Trainer').value = '';
+  document.getElementById('a1Socio').innerHTML = '<option value="">Seleccionar socio</option>';
+  document.getElementById('fechaCambioPlan').value = '';
+  document.getElementById('fechaEvaluacion').value = '';
+  document.getElementById('fechaApp').value = '';
+  document.getElementById('hallazgos').value = '';
+  document.getElementById('plan1').value = '';
+  document.getElementById('plan2').value = '';
+  document.getElementById('plan3').value = '';
+  document.querySelectorAll('#tab-audit .check-item').forEach(el => el.classList.remove('checked'));
+  ['sec-fecha','sec-plan','sec-diag','sec-met','sec-custom'].forEach(sec => {
+    updateSectionBorder(sec, 'verde');
+  });
+  document.getElementById('scoreNum').textContent = '0';
+}
+
+function saveAudit() {
+  const socioId = document.getElementById('a1Socio').value;
+  if(!socioId) { toastShow('Selecciona un socio', false); return; }
+  toastShow('Auditoría guardada correctamente');
+}
+
+// ==================== TAB 2: CONTROL DE CARGA ====================
+let activeFilter = 'all';
+
+function scoreSocio(s) {
+  let pts = 0, max = 6;
+  if(s.perfil) pts++;
+  if(s.objetivo && s.objetivo.trim()) pts++;
+  if(s.evalCargada) pts++;
+  if(s.fechaEval) pts++;
+  if(s.planCoincide) pts++;
+  if(s.fechaCoincide) pts++;
+  return Math.round(pts/max*100);
+}
+
+function stateSocio(s) {
+  const score = scoreSocio(s);
+  if(score >= 80) return 'ok';
+  if(score >= 50) return 'warn';
+  return 'fail';
+}
+
+function stateIcon(state) {
+  if(state==='ok') return '🟢';
+  if(state==='warn') return '🟡';
+  return '🔴';
+}
+
+function setFilter(el, state) {
+  activeFilter = state;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderTab2();
+}
+
+function renderTab2() {
+  const tid = document.getElementById('c2Trainer').value;
+  let socios = tid ? store.socios.filter(s=>s.trainerId===tid) : [...store.socios];
+  if(activeFilter !== 'all') socios = socios.filter(s=>stateSocio(s)===activeFilter);
   
-  const list = document.getElementById('auditList');
-  if(!trainer.audits.length){
-    list.innerHTML = `<div class="empty-state">
-      <div class="empty-icon"><i class="fas fa-clipboard"></i></div>
-      <div class="empty-text">No hay auditorías registradas.<br>Haz click en "Nueva Auditoría" para comenzar.</div>
-    </div>`;
+  const tbody = document.getElementById('c2TableBody');
+  if(!socios.length){
+    tbody.innerHTML = `<div style="padding:32px;text-align:center;color:var(--text3)">No hay socios con ese filtro</div>`;
     return;
   }
   
-  list.innerHTML = trainer.audits.map(audit=>{
-    const semChips = SECTIONS.map(s=>`
-      <span class="sem-chip ${semToClass(audit.semaforos[s.key])}" title="${s.label}">${s.label.split(' ')[0]}</span>
-    `).join('');
-    
-    const formattedDate = audit.date ? new Date(audit.date+'T00:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'}) : '';
-    
-    const semFull = SECTIONS.map(s=>`
-      <div class="sem-full">
-        <span style="font-size:12px">${s.key==='gestion'?'🟢':s.key==='diagnostico'?'📊':s.key==='metodologia'?'🏋️':'👤'}</span>
-        <span class="sem-section-name">${s.label.split(' ')[0]}</span>
-        <span class="sem-chip ${semToClass(audit.semaforos[s.key])}">${semLabel(audit.semaforos[s.key])}</span>
-      </div>
-    `).join('');
-    
-    const obsItems = SECTIONS.map(s=>
-      audit.obs[s.key] ? `<div style="margin-bottom:4px"><span style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.6px">${s.label.split(' ')[0]}:</span> ${audit.obs[s.key]}</div>` : ''
-    ).join('');
-    
-    const planesItems = [audit.planes[0],audit.planes[1],audit.planes[2]]
-      .filter(Boolean).map(p=>`<li>${p}</li>`).join('');
+  tbody.innerHTML = socios.map(s=>{
+    const state = stateSocio(s);
+    const score = scoreSocio(s);
+    const scoreCls = score>=80?'high':score>=50?'mid':'low';
+    const stateDot = state==='ok'?'dot-green':state==='warn'?'dot-yellow':'dot-red';
+    const trainer = store.trainers.find(t=>t.id===s.trainerId);
+    const daysEval = s.fechaEval ? daysDiff(s.fechaEval) : null;
+    const daysPlan = s.fechaPlan ? daysDiff(s.fechaPlan) : null;
+    const planIcon = s.planCoincide ? '✅' : '❌';
+    const evalIcon = s.evalCargada ? '✅' : '❌';
     
     return `
-    <div class="audit-item" onclick="toggleAudit('${audit.id}')">
-      <div class="audit-item-top">
-        <div>
-          <div class="audit-socio"><i class="fas fa-user" style="font-size:11px;color:var(--text3);margin-right:5px"></i>${audit.socio}</div>
-          <div class="audit-date">${formattedDate}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="audit-semaforos">${semChips}</div>
-          <i class="fas fa-chevron-down" id="chev_${audit.id}" style="color:var(--text3);font-size:11px;transition:transform 0.2s"></i>
-        </div>
+    <div>
+      <div class="table-row" onclick="cargarSocioEnAuditoria('${s.id}')">
+        <div class="td name"><span class="status-dot ${stateDot}"></span>${s.name}</div>
+        <div class="td">${trainer ? trainer.name : '—'}</div>
+        <div class="td">${stateIcon(state)} <span style="font-size:11px">${state==='ok'?'Correcto':state==='warn'?'Desfasado':'Incorrecto'}</span></div>
+        <div class="td"><span class="score-badge ${scoreCls}">${score}</span></div>
+        <div class="td">${planIcon} ${daysPlan!==null?daysPlan+'d':''}</div>
+        <div class="td">${evalIcon} ${daysEval!==null?daysEval+'d':''}</div>
+        <div class="td"><i class="fas fa-chevron-down" style="color:var(--text3);font-size:10px"></i></div>
       </div>
-      ${audit.hallazgos ? `<div class="audit-obs"><i class="fas fa-circle-info" style="color:var(--accent);margin-right:4px;font-size:10px"></i>${audit.hallazgos.slice(0,120)}${audit.hallazgos.length>120?'…':''}</div>` : ''}
-      
-      <div class="audit-expanded" id="exp_${audit.id}">
-        <div class="sem-full-row">${semFull}</div>
-        <div class="detail-grid">
-          <div class="detail-block">
-            <div class="detail-block-title"><i class="fas fa-eye" style="margin-right:4px"></i>Observaciones</div>
-            <div class="detail-block-content">${obsItems||'Sin observaciones registradas.'}</div>
-          </div>
-          <div class="detail-block">
-            <div class="detail-block-title"><i class="fas fa-list-check" style="margin-right:4px"></i>Plan de Acción</div>
-            <ul class="plan-list">${planesItems||'<li>Sin plan registrado.</li>'}</ul>
-          </div>
-        </div>
-        ${audit.hallazgos?`
-        <div class="detail-block" style="margin-top:0">
-          <div class="detail-block-title"><i class="fas fa-magnifying-glass" style="margin-right:4px"></i>Hallazgos Técnicos</div>
-          <div class="detail-block-content">${audit.hallazgos}</div>
-        </div>`:''} 
-      </div>
-    </div>
-    `;
+    </div>`;
   }).join('');
 }
 
-function toggleAudit(id){
-  const exp = document.getElementById('exp_'+id);
-  const chev = document.getElementById('chev_'+id);
-  if(!exp) return;
-  const isOpen = exp.classList.contains('open');
-  exp.classList.toggle('open');
-  if(chev) chev.style.transform = isOpen?'':'rotate(180deg)';
-}
-
-// ═══════════════════════════════════════════════
-//  FORM
-// ═══════════════════════════════════════════════
-const sectionDefaults = ()=>{
-  const obj={};
-  SECTIONS.forEach(s=>obj[s.key]='verde');
-  return obj;
-};
-
-function showForm(trainerId){
-  currentTrainerId = trainerId;
-  const trainer = store.trainers.find(t=>t.id===trainerId);
-  if(!trainer) return;
-  
-  document.getElementById('fTrainer').value = trainer.name;
-  document.getElementById('fSocio').value = '';
-  document.getElementById('fHallazgos').value = '';
-  document.getElementById('fPlan1').value = '';
-  document.getElementById('fPlan2').value = '';
-  document.getElementById('fPlan3').value = '';
-  document.getElementById('formTitle').textContent = `Nueva Auditoría · ${trainer.name}`;
-  document.getElementById('formSub').textContent = 'Completa los campos para registrar la auditoría del socio';
-  
-  // Render section semáforos
-  const container = document.getElementById('formSections');
-  container.innerHTML = SECTIONS.map(sec=>`
-    <div class="section-form-block">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px">
-        <div style="font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px">
-          <i class="fas ${sec.icon}" style="color:var(--accent);opacity:0.7"></i>${sec.label}
-        </div>
-        <div class="semaforo-group">
-          <input type="radio" class="sem-radio g" name="sem_${sec.key}" id="sem_${sec.key}_verde" value="verde" checked>
-          <label class="sem-radio-lbl" for="sem_${sec.key}_verde">🟢 Verde</label>
-          <input type="radio" class="sem-radio y" name="sem_${sec.key}" id="sem_${sec.key}_amarillo" value="amarillo">
-          <label class="sem-radio-lbl" for="sem_${sec.key}_amarillo">🟡 Amarillo</label>
-          <input type="radio" class="sem-radio r" name="sem_${sec.key}" id="sem_${sec.key}_rojo" value="rojo">
-          <label class="sem-radio-lbl" for="sem_${sec.key}_rojo">🔴 Rojo</label>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Observaciones</label>
-        <textarea class="form-textarea" id="fObs_${sec.key}" rows="2" placeholder="Observaciones para ${sec.label.toLowerCase()}..."></textarea>
-      </div>
-    </div>
-  `).join('');
-  
-  navigate('form');
-}
-
-function cancelForm(){
-  if(currentTrainerId) showDetail(currentTrainerId);
-  else navigate('grid');
-}
-
-function saveAudit(){
-  const socio = document.getElementById('fSocio').value.trim();
-  if(!socio){ alert('El nombre del socio es requerido'); return; }
-  
-  const semaforos = {};
-  const obs = {};
-  SECTIONS.forEach(sec=>{
-    const checked = document.querySelector(`input[name="sem_${sec.key}"]:checked`);
-    semaforos[sec.key] = checked ? checked.value : 'verde';
-    obs[sec.key] = document.getElementById('fObs_'+sec.key).value.trim();
-  });
-  
-  const hallazgos = document.getElementById('fHallazgos').value.trim();
-  const planes = [
-    document.getElementById('fPlan1').value.trim(),
-    document.getElementById('fPlan2').value.trim(),
-    document.getElementById('fPlan3').value.trim()
-  ].filter(Boolean);
-  
-  document.getElementById('loadingOverlay').style.display = 'flex';
-  
-  setTimeout(()=>{
-    const trainer = store.trainers.find(t=>t.id===currentTrainerId);
-    if(trainer){
-      const newAudit = {
-        id:'a'+Date.now(), socio,
-        date:new Date().toISOString().split('T')[0],
-        semaforos, hallazgos, planes, obs
-      };
-      trainer.audits.unshift(newAudit);
-    }
-    document.getElementById('loadingOverlay').style.display = 'none';
-    showToast('Auditoría guardada correctamente');
-    showDetail(currentTrainerId);
-  },900);
-}
-
-// ═══════════════════════════════════════════════
-//  ADD TRAINER
-// ═══════════════════════════════════════════════
-function showAddTrainer(){
-  document.getElementById('tName').value='';
-  document.getElementById('tSocios').value='';
-  document.getElementById('trainerModal').style.display='flex';
-}
-function closeTrainerModal(){
-  document.getElementById('trainerModal').style.display='none';
-}
-function addTrainer(){
-  const name = document.getElementById('tName').value.trim();
-  const socios = parseInt(document.getElementById('tSocios').value)||0;
-  if(!name){ alert('El nombre es requerido'); return; }
-  store.trainers.push({id:'t'+Date.now(),name,sociosActivos:socios,audits:[]});
-  closeTrainerModal();
-  renderGrid();
-  showToast(`${name} agregado correctamente`);
-}
-
-// ═══════════════════════════════════════════════
-//  NAVIGATION
-// ═══════════════════════════════════════════════
-function navigate(page){
-  currentPage = page;
-  document.getElementById('page-grid').classList.toggle('page-hidden', page!=='grid');
-  document.getElementById('page-detail').classList.toggle('page-hidden', page!=='detail');
-  document.getElementById('page-form').classList.toggle('page-hidden', page!=='form');
-  
-  const btnBack = document.getElementById('btnBack');
-  btnBack.classList.toggle('visible', page!=='grid');
-  btnBack.textContent = page==='form' ? '← Volver al Dashboard' : '← Todos los Entrenadores';
-  // re-add icon
-  if(page!=='grid'){
-    btnBack.innerHTML = `<i class="fas fa-arrow-left" style="font-size:10px"></i> ${page==='form'?'Volver al Dashboard':'Todos los Entrenadores'}`;
+function cargarSocioEnAuditoria(socioId) {
+  // Cambiar a pestaña de auditoría
+  switchTab('audit');
+  const socio = store.socios.find(s => s.id === socioId);
+  if(socio) {
+    document.getElementById('a1Trainer').value = socio.trainerId;
+    loadAuditFromTrainer();
+    setTimeout(() => {
+      document.getElementById('a1Socio').value = socioId;
+      aplicarSemaforosAuto(socioId);
+    }, 100);
   }
-  
-  window.scrollTo(0,0);
 }
 
-function goBack(){
-  if(currentPage==='form') showDetail(currentTrainerId);
-  else { navigate('grid'); renderGrid(); }
+// ==================== AGREGAR SOCIO ====================
+function openAddSocioModal() {
+  document.getElementById('sm_name').value = '';
+  document.getElementById('sm_objetivo').value = '';
+  document.getElementById('sm_fechaPlan').value = '';
+  document.getElementById('sm_fechaEval').value = '';
+  document.getElementById('sm_fechaApp').value = '';
+  ['sm_perfil','sm_evalCargada','sm_planCoincide','sm_fechaCoincide'].forEach(id=>document.getElementById(id).checked=false);
+  document.getElementById('addSocioModal').style.display='flex';
+}
+function closeAddSocioModal() { document.getElementById('addSocioModal').style.display='none'; }
+function saveSocio() {
+  const name = document.getElementById('sm_name').value.trim();
+  const tid = document.getElementById('sm_trainer').value;
+  if(!name||!tid) { toastShow('Complete nombre y entrenador', false); return; }
+  store.socios.push({
+    id:'s'+Date.now(), name, trainerId:tid,
+    objetivo: document.getElementById('sm_objetivo').value.trim(),
+    fechaPlan: document.getElementById('sm_fechaPlan').value,
+    fechaEval: document.getElementById('sm_fechaEval').value,
+    fechaApp: document.getElementById('sm_fechaApp').value,
+    perfil: document.getElementById('sm_perfil').checked,
+    evalCargada: document.getElementById('sm_evalCargada').checked,
+    planCoincide: document.getElementById('sm_planCoincide').checked,
+    fechaCoincide: document.getElementById('sm_fechaCoincide').checked,
+  });
+  closeAddSocioModal();
+  renderTab2();
+  toastShow('Socio agregado');
 }
 
-// ═══════════════════════════════════════════════
-//  TOAST
-// ═══════════════════════════════════════════════
-function showToast(msg){
-  const t = document.getElementById('toast');
-  document.getElementById('toastText').textContent = msg;
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),3000);
+// ==================== INIT ====================
+function populateSelects() {
+  const trainerSelects = ['a1Trainer','c2Trainer','sm_trainer'];
+  trainerSelects.forEach(id => {
+    const sel = document.getElementById(id);
+    if(sel) {
+      sel.innerHTML = '<option value="">Seleccionar</option>';
+      store.trainers.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.name;
+        sel.appendChild(opt);
+      });
+    }
+  });
 }
 
-// ═══════════════════════════════════════════════
-//  INIT
-// ═══════════════════════════════════════════════
-renderGrid();
+function switchTab(tab) {
+  const isAudit = tab === 'audit';
+  document.querySelectorAll('.tab-btn').forEach((btn,i) => {
+    btn.classList.toggle('active', (i===0 && isAudit) || (i===1 && !isAudit));
+  });
+  document.getElementById('tab-audit').classList.toggle('active', isAudit);
+  document.getElementById('tab-carga').classList.toggle('active', !isAudit);
+  if(!isAudit) renderTab2();
+}
+
+// Event listeners
+document.getElementById('fechaCambioPlan').addEventListener('change', calcAutoSemaforos);
+document.getElementById('fechaEvaluacion').addEventListener('change', calcAutoSemaforos);
+document.getElementById('fechaApp').addEventListener('change', calcAutoSemaforos);
+document.querySelectorAll('#tab-audit .check-item').forEach(item => {
+  item.addEventListener('click', function() { this.classList.toggle('checked'); calcularScore(); });
+});
+
+populateSelects();
+renderTab2();
+document.getElementById('a1Trainer').addEventListener('change', loadAuditFromTrainer);
 </script>
 </body>
 </html>
